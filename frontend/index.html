@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MeetingOS — Autonomous Workflow Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ══ SIDEBAR ══ -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo"><span>M</span></div>
+        <div class="brand-text">
+          <div class="brand-name">MeetingOS</div>
+          <div class="brand-version">v2.0 · Local ML</div>
+        </div>
+      </div>
+
+      <div class="sidebar-status">
+        <div class="conn-indicator" id="connIndicator">
+          <div class="conn-dot" id="connDot"></div>
+          <span id="connLabel">Connecting…</span>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><button class="snav-btn active" data-view="dashboard">
+          <span class="snav-icon">◈</span><span>Dashboard</span>
+        </button></li>
+        <li><button class="snav-btn" data-view="analytics">
+          <span class="snav-icon">◉</span><span>Analytics</span>
+        </button></li>
+        <li><button class="snav-btn" data-view="workload">
+          <span class="snav-icon">◎</span><span>Workload</span>
+        </button></li>
+        <li><button class="snav-btn" data-view="timeline">
+          <span class="snav-icon">◐</span><span>Timeline</span>
+        </button></li>
+        <li><button class="snav-btn" data-view="history">
+          <span class="snav-icon">◑</span><span>Audit Log</span>
+        </button></li>
+        <li><button class="snav-btn" data-view="performance">
+          <span class="snav-icon">◒</span><span>Performance</span>
+        </button></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button class="escalate-btn" id="btnEscalate">
+          <span class="esc-icon">⚡</span>
+          <span>Run Escalation</span>
+        </button>
+        <div class="sidebar-kpis">
+          <div class="skpi"><div class="skpi-n" id="skTotal">0</div><div class="skpi-l">Tasks</div></div>
+          <div class="skpi"><div class="skpi-n green" id="skDone">0</div><div class="skpi-l">Done</div></div>
+          <div class="skpi"><div class="skpi-n red" id="skOver">0</div><div class="skpi-l">Overdue</div></div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <div class="main-content">
+
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="view-title" id="viewTitle">Dashboard</h1>
+          <div class="breadcrumb" id="breadcrumb">Overview · All Tasks</div>
+        </div>
+        <div class="topbar-right">
+          <div class="search-wrap">
+            <span class="search-ico">⌕</span>
+            <input type="text" id="searchInput" class="search-field" placeholder="Search tasks, owners…"/>
+            <kbd class="search-kbd">ESC</kbd>
+          </div>
+          <div class="topbar-filters" id="topbarFilters">
+            <select id="filterStatus" class="pill-select">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="overdue">Overdue</option>
+            </select>
+            <select id="filterPriority" class="pill-select">
+              <option value="">All Priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+        </div>
+      </header>
+
+      <!-- ══ DASHBOARD VIEW ══ -->
+      <div class="view active" id="view-dashboard">
+        <div class="dashboard-grid">
+
+          <!-- Meeting Input Panel -->
+          <div class="card input-card">
+            <div class="card-header">
+              <span class="card-icon accent-purple">✦</span>
+              <span class="card-title">Meeting Input</span>
+            </div>
+            <div class="card-body">
+              <textarea id="meetingText" class="meeting-ta"
+                placeholder="Paste meeting transcript, notes, or action items…&#10;&#10;Example:&#10;Q3 Planning — April 2026&#10;&#10;Sarah will redesign the onboarding by April 20. High priority.&#10;John must complete API integration ASAP — critical for launch.&#10;Marketing team should prepare campaign assets by April 25."></textarea>
+              <button class="btn-extract" id="btnProcess">
+                <span class="btn-spinner hidden" id="processSpinner">↻</span>
+                <span id="btnProcessText">Extract Tasks with AI</span>
+                <span class="btn-arrow">→</span>
+              </button>
+              <div class="alert-box hidden" id="alertBox"></div>
+            </div>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="stats-row">
+            <div class="stat-tile" data-color="purple">
+              <div class="st-value" id="statTotal">0</div>
+              <div class="st-label">Total Tasks</div>
+              <div class="st-bar"><div class="st-fill purple" id="stFillTotal" style="width:100%"></div></div>
+            </div>
+            <div class="stat-tile" data-color="green">
+              <div class="st-value green" id="statCompleted">0</div>
+              <div class="st-label">Completed</div>
+              <div class="st-bar"><div class="st-fill green" id="stFillDone" style="width:0%"></div></div>
+            </div>
+            <div class="stat-tile" data-color="amber">
+              <div class="st-value amber" id="statInProgress">0</div>
+              <div class="st-label">In Progress</div>
+              <div class="st-bar"><div class="st-fill amber" id="stFillActive" style="width:0%"></div></div>
+            </div>
+            <div class="stat-tile" data-color="red">
+              <div class="st-value red" id="statOverdue">0</div>
+              <div class="st-label">Overdue</div>
+              <div class="st-bar"><div class="st-fill red" id="stFillOverdue" style="width:0%"></div></div>
+            </div>
+          </div>
+
+          <!-- Task Board -->
+          <div class="card tasks-card">
+            <div class="card-header">
+              <span class="card-icon accent-blue">◈</span>
+              <span class="card-title">Task Board</span>
+              <span class="badge-count" id="taskBadgeCount">0</span>
+              <div class="card-header-right">
+                <div class="sort-btns">
+                  <button class="sort-btn active" data-sort="urgency">Urgency</button>
+                  <button class="sort-btn" data-sort="deadline">Deadline</button>
+                  <button class="sort-btn" data-sort="owner">Owner</button>
+                </div>
+              </div>
+            </div>
+            <div class="overdue-alert hidden" id="overdueAlert">
+              <span class="oa-icon">⚠</span>
+              <span id="overdueAlertText">tasks are overdue</span>
+              <button class="oa-btn" id="btnShowOverdue">View All</button>
+            </div>
+            <div class="task-board" id="taskBoard">
+              <div class="empty-board">
+                <div class="eb-icon">◈</div>
+                <div class="eb-title">No tasks yet</div>
+                <div class="eb-sub">Paste meeting notes and extract tasks with AI</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audit Log Panel -->
+          <div class="card audit-card">
+            <div class="card-header">
+              <span class="card-icon accent-amber">◑</span>
+              <span class="card-title">Audit Log</span>
+              <span class="badge-count" id="logBadgeCount">0</span>
+            </div>
+            <div class="audit-feed" id="auditFeed">
+              <div class="empty-feed">No events yet</div>
+            </div>
+          </div>
+
+          <!-- Completion Meter -->
+          <div class="card meter-card">
+            <div class="card-header">
+              <span class="card-icon accent-green">◉</span>
+              <span class="card-title">SLA Performance</span>
+            </div>
+            <div class="meter-body">
+              <div class="ring-wrap">
+                <svg viewBox="0 0 120 120" class="ring-svg">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"
+                    id="completionRing" transform="rotate(-90 60 60)"/>
+                  <defs>
+                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#22d3ee"/>
+                      <stop offset="100%" stop-color="#4ade80"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="ring-center">
+                  <div class="ring-pct" id="ringPct">0%</div>
+                  <div class="ring-lbl">Complete</div>
+                </div>
+              </div>
+              <div class="meter-stats">
+                <div class="ms-row">
+                  <span class="ms-label">Completion Rate</span>
+                  <span class="ms-val green" id="mCompletion">0%</span>
+                </div>
+                <div class="ms-bar"><div class="ms-fill green" id="mFillCompletion" style="width:0%"></div></div>
+                <div class="ms-row" style="margin-top:14px">
+                  <span class="ms-label">Overdue Rate</span>
+                  <span class="ms-val red" id="mOverdue">0%</span>
+                </div>
+                <div class="ms-bar"><div class="ms-fill red" id="mFillOverdue" style="width:0%"></div></div>
+                <div class="ms-row" style="margin-top:14px">
+                  <span class="ms-label">Escalated Tasks</span>
+                  <span class="ms-val amber" id="mEscalated">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ANALYTICS VIEW ══ -->
+      <div class="view" id="view-analytics">
+        <div class="analytics-layout">
+          <div class="kpi-row">
+            <div class="kpi-card" style="--ka:#818cf8">
+              <div class="kpi-icon">◈</div>
+              <div class="kpi-val" id="aTotal">0</div>
+              <div class="kpi-label">Total Tasks</div>
+              <div class="kpi-trend" id="aTrend">—</div>
+            </div>
+            <div class="kpi-card" style="--ka:#4ade80">
+              <div class="kpi-icon">✓</div>
+              <div class="kpi-val" id="aCompleted">0</div>
+              <div class="kpi-label">Completed</div>
+              <div class="kpi-sub" id="aCompRate">0% rate</div>
+            </div>
+            <div class="kpi-card" style="--ka:#fb923c">
+              <div class="kpi-icon">◐</div>
+              <div class="kpi-val" id="aInProgress">0</div>
+              <div class="kpi-label">In Progress</div>
+              <div class="kpi-sub" id="aActiveRate">0% of total</div>
+            </div>
+            <div class="kpi-card" style="--ka:#f87171">
+              <div class="kpi-icon">⚠</div>
+              <div class="kpi-val" id="aOverdue">0</div>
+              <div class="kpi-label">Overdue</div>
+              <div class="kpi-sub" id="aOverRate">0% rate</div>
+            </div>
+            <div class="kpi-card" style="--ka:#facc15">
+              <div class="kpi-icon">⚡</div>
+              <div class="kpi-val" id="aEscalated">0</div>
+              <div class="kpi-label">Escalated</div>
+              <div class="kpi-sub">Needs attention</div>
+            </div>
+          </div>
+          <div class="charts-grid">
+            <div class="chart-panel">
+              <div class="cp-header"><span class="cp-title">Status Distribution</span></div>
+              <div class="donut-area">
+                <svg viewBox="0 0 160 160" class="donut-svg" id="donutSvg">
+                  <circle cx="80" cy="80" r="60" fill="none" stroke="var(--surface2)" stroke-width="22"/>
+                  <circle class="dseg" id="ds-pending"    cx="80" cy="80" r="60" fill="none" stroke="#818cf8" stroke-width="22" stroke-dasharray="0 377" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                  <circle class="dseg" id="ds-inprogress" cx="80" cy="80" r="60" fill="none" stroke="#22d3ee" stroke-width="22" stroke-dasharray="0 377" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                  <circle class="dseg" id="ds-completed"  cx="80" cy="80" r="60" fill="none" stroke="#4ade80" stroke-width="22" stroke-dasharray="0 377" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                  <circle class="dseg" id="ds-overdue"    cx="80" cy="80" r="60" fill="none" stroke="#f87171" stroke-width="22" stroke-dasharray="0 377" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                </svg>
+                <div class="donut-center-text">
+                  <div class="dct-num" id="dctNum">0</div>
+                  <div class="dct-sub">Total</div>
+                </div>
+              </div>
+              <div class="donut-legend">
+                <div class="dl"><span class="dl-dot" style="background:#818cf8"></span><span>Pending</span><b id="dl-pending">0</b></div>
+                <div class="dl"><span class="dl-dot" style="background:#22d3ee"></span><span>In Progress</span><b id="dl-inprogress">0</b></div>
+                <div class="dl"><span class="dl-dot" style="background:#4ade80"></span><span>Completed</span><b id="dl-completed">0</b></div>
+                <div class="dl"><span class="dl-dot" style="background:#f87171"></span><span>Overdue</span><b id="dl-overdue">0</b></div>
+              </div>
+            </div>
+            <div class="chart-panel">
+              <div class="cp-header"><span class="cp-title">Priority Breakdown</span></div>
+              <div class="hbar-chart">
+                <div class="hbar-row">
+                  <span class="hbar-label">Critical / High</span>
+                  <div class="hbar-track"><div class="hbar-fill" id="hbHigh" style="width:0%;background:linear-gradient(90deg,#f87171,#fca5a5)"></div></div>
+                  <span class="hbar-val" id="hvHigh">0</span>
+                </div>
+                <div class="hbar-row">
+                  <span class="hbar-label">Medium</span>
+                  <div class="hbar-track"><div class="hbar-fill" id="hbMed" style="width:0%;background:linear-gradient(90deg,#facc15,#fde68a)"></div></div>
+                  <span class="hbar-val" id="hvMed">0</span>
+                </div>
+                <div class="hbar-row">
+                  <span class="hbar-label">Low</span>
+                  <div class="hbar-track"><div class="hbar-fill" id="hbLow" style="width:0%;background:linear-gradient(90deg,#4ade80,#86efac)"></div></div>
+                  <span class="hbar-val" id="hvLow">0</span>
+                </div>
+              </div>
+              <div class="cp-header" style="margin-top:28px"><span class="cp-title">Owner Task Distribution</span></div>
+              <div class="owner-bars" id="ownerBars"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ WORKLOAD VIEW ══ -->
+      <div class="view" id="view-workload">
+        <div class="workload-grid" id="workloadGrid">
+          <div class="empty-view"><div class="ev-icon">◎</div><p>Process a meeting to see workload data</p></div>
+        </div>
+      </div>
+
+      <!-- ══ TIMELINE VIEW ══ -->
+      <div class="view" id="view-timeline">
+        <div class="timeline-container" id="timelineContainer">
+          <div class="empty-view"><div class="ev-icon">◐</div><p>No tasks scheduled yet</p></div>
+        </div>
+      </div>
+
+      <!-- ══ HISTORY / AUDIT LOG VIEW ══ -->
+      <div class="view" id="view-history">
+        <div class="history-toolbar">
+          <select id="histEventFilter" class="pill-select">
+            <option value="">All Events</option>
+            <option value="MEETING_PROCESSED">Meeting Processed</option>
+            <option value="TASK_CREATED">Task Created</option>
+            <option value="TASK_STATUS_UPDATED">Status Updated</option>
+            <option value="TASK_ESCALATED">Escalated</option>
+            <option value="SLA_BREACH_DETECTED">SLA Breach</option>
+            <option value="AI_EXTRACTION_FAILED">Extraction Failed</option>
+          </select>
+          <span class="result-count" id="histResultCount">0 events</span>
+          <button class="refresh-btn" id="btnRefreshHistory">↻ Refresh</button>
+        </div>
+        <div class="history-table-wrap">
+          <table class="hist-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Event</th>
+                <th>Entity</th>
+                <th>Actor</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="histTableBody">
+              <tr><td colspan="5" class="empty-row">No audit events recorded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══ PERFORMANCE VIEW ══ -->
+      <div class="view" id="view-performance">
+        <div class="perf-header-row">
+          <div class="perf-intro">
+            <h2>Team Leaderboard</h2>
+            <p>Ranked by task completion rate</p>
+          </div>
+          <div class="perf-summary" id="perfSummary"></div>
+        </div>
+        <div class="perf-grid" id="perfGrid">
+          <div class="empty-view"><div class="ev-icon">◒</div><p>Process meetings to generate performance data</p></div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /app-shell -->
+
+  <!-- ══ TASK DETAIL MODAL ══ -->
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <div class="modal-panel" id="modalPanel">
+      <div class="modal-topbar">
+        <div class="modal-tag" id="modalTag"></div>
+        <button class="modal-x" id="modalClose">✕</button>
+      </div>
+      <h2 class="modal-task-title" id="modalTitle"></h2>
+      <div class="modal-grid">
+        <div class="mg-item"><div class="mg-key">Owner</div><div class="mg-val" id="mOwner"></div></div>
+        <div class="mg-item"><div class="mg-key">Deadline</div><div class="mg-val" id="mDeadline"></div></div>
+        <div class="mg-item"><div class="mg-key">Status</div><div class="mg-val" id="mStatus"></div></div>
+        <div class="mg-item"><div class="mg-key">Priority</div><div class="mg-val" id="mPriority"></div></div>
+        <div class="mg-item"><div class="mg-key">SLA Window</div><div class="mg-val" id="mSla"></div></div>
+        <div class="mg-item"><div class="mg-key">Escalated</div><div class="mg-val" id="mEscalated"></div></div>
+        <div class="mg-item"><div class="mg-key">Created</div><div class="mg-val" id="mCreated"></div></div>
+        <div class="mg-item"><div class="mg-key">Meeting ID</div><div class="mg-val mono" id="mMeetingId"></div></div>
+      </div>
+      <div class="modal-action-row">
+        <label class="mg-key">Update Status</label>
+        <select id="mStatusSelect" class="pill-select">
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <button class="btn-save" id="btnModalSave">Save Changes</button>
+      </div>
+      <div class="modal-alert hidden" id="modalAlert"></div>
+    </div>
+  </div>
+
+  <!-- ══ TOAST NOTIFICATIONS ══ -->
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
